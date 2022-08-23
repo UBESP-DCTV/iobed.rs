@@ -1,22 +1,28 @@
 
 # Packages --------------------------------------------------------
 
+library(checkmate)
+library(testthat)
 library(tidyverse)
 
 # Functions -------------------------------------------------------
 
 data_path <- file.path(
-  "C:", "Users", "corrado.lanera",
+  "C:", "Users", "corra",
   "Unit of Biostatistics Epidemiology and Public Health",
   "LAIMS - IOBED",
   "revisione", "exports"
 )
 
+fix_names <- function(x) {
+  x |>
+    str_replace(
+      "((.*/)*)(\\d).*[iI][eE]{3}.*$",
+      "\\2ieee-\\3\\.ris"
+    )
+}
 
 # Tests -----------------------------------------------------------
-
-library(testthat)
-library(checkmate)
 
 # with_reporter() enclosse in an interactive session all the testing
 # environment and machinery of {testthat}.
@@ -41,6 +47,35 @@ with_reporter(default_reporter(), {
     expect_subset(expected_dirs, obtained_dirs)
   })
 
+
+  test_that("fix_names fixes the names", {
+    # setup
+    ieee_1 <- "1-IEEE Xplore Citation Download 2022.08.04.09.23.23.ris"
+    expected_ieee_1 <- "ieee-1.ris"
+    ieee_1_path <- "path/to/1-IEEE Xplore Citation Download 2022.08.04.09.23.23.ris"
+
+    ieee_2 <- "2 - IEEE Xplore Citation Download 2022.08.04.09.24.09.ris"
+    expected_ieee_2 <- "ieee-2.ris"
+
+    ieee_3 <- "3- IEEE Xplore Citation Download 2022.08.04.09.24.54.ris"
+    expected_ieee_3 <- "ieee-3.ris"
+
+    # evaluate
+    res_ieee_1 <- fix_names(ieee_1) |> basename()
+    res_ieee_1_path <- fix_names(ieee_1_path) |> basename()
+
+    res_ieee_2 <- fix_names(ieee_2) |> basename()
+    res_ieee_3 <- fix_names(ieee_3) |> basename()
+
+    # tests
+    expect_true(str_detect(ieee_1, "(.*/)*(\\d).*[iI][eE]{3}.*$"))
+    res_ieee_1 |>  expect_equal(expected_ieee_1)
+    expect_identical(res_ieee_1, res_ieee_1_path)
+
+    res_ieee_2 |>  expect_equal(expected_ieee_2)
+    res_ieee_3 |>  expect_equal(expected_ieee_3)
+
+  })
 
 })
 
