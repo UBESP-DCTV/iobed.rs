@@ -22,6 +22,7 @@ fix_names <- function(x) {
     )
 }
 
+
 # Tests -----------------------------------------------------------
 
 # with_reporter() enclosse in an interactive session all the testing
@@ -60,6 +61,15 @@ with_reporter(default_reporter(), {
     ieee_3 <- "3- IEEE Xplore Citation Download 2022.08.04.09.24.54.ris"
     expected_ieee_3 <- "ieee-3.ris"
 
+
+    acm <- "acm.ris"
+    chinhal <- "chinhal.ris"
+    cochrane <- "cochrane.ris"
+    embase <- "embase.ris"
+    pubmed <- "pubmed.txt"
+    scopus <- "scopus.ris"
+    wos <- "wos.ris"
+    
     # evaluate
     res_ieee_1 <- fix_names(ieee_1) |> basename()
     res_ieee_1_path <- fix_names(ieee_1_path) |> basename()
