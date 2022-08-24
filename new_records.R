@@ -85,6 +85,13 @@ with_reporter(default_reporter(), {
 sr_data <- list.files(data_path, full.names = TRUE) |>
   set_basename() |>
   map(read_csv, show_col_types = FALSE) |>
+  map(
+    mutate,
+    across(
+      c(Issue, Date, Volume, Pages, `Num Pages`),
+      as.character
+    )
+  ) |> map_int(nrow)
   bind_rows(.id = "source") |>
   separate(source, c("source", "month"), extra = "drop")
 
@@ -92,7 +99,44 @@ new_data <- sr_data |>
   with_groups(
     source,
     remove_duplicates,
-    -source, -month, -Key, -starts_with("Date")
+    -source, -month, -Key, -contains("Date"), -where(is.logical),
+    -`Abstract Note`, -`Manual Tags`, -Url, -Pages, -Issue, -Volume,
+    -Extra, -`Num Pages`, -`Number Of Volumes`, -Number,
+    -`Link Attachments`, -`Journal Abbreviation`, -Language,
+    -`Publication Year`, -Rights, -Place, -Archive, -`Archive Location`,
+    -Edition, -`Library Catalog`, -Series, -`Short Title`, -Type,
+    -Editor, -Publisher
   )
 
-new_data
+new_data |>
+  pull(source) |>
+  table()
+
+
+
+new_data |>
+  # filter(source == "ieeex") |>
+  select(
+    -ISBN, -ISSN, -DOI,
+    -Key, -`Abstract Note`, -`Manual Tags`, -Url,
+    -`Num Pages`, -`Number Of Volumes`, -Number, -`Link Attachments`,
+    -Pages, -Issue, -Volume, -Extra, -`Journal Abbreviation`,
+    -Language, -`Publication Year`, -Rights, -Place, -Archive,
+    -`Archive Location`, -Edition, -`Library Catalog`, -Series,
+    -`Short Title`, -Type, -Editor, -Publisher,
+    -contains("Date"), -where(is.logical)
+  ) |>
+  get_dupes("Title") |>
+  janitor::remove_empty() |>
+  arrange(Title) |>
+  glimpse()
+
+new_data |>
+  filter(source != "acm") |>
+  write_csv(
+    paste0(
+      str_remove_all(Sys.time(), "\\D"),
+      "-",
+      "new_records.csv"
+    )
+  )
