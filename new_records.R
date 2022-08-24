@@ -8,24 +8,28 @@ library(tidyverse)
 # Functions -------------------------------------------------------
 
 data_path <- file.path(
-  "C:", "Users", "corra",
+  "C:", "Users", "corrado.lanera",
   "Unit of Biostatistics Epidemiology and Public Health",
   "LAIMS - IOBED",
-  "revisione", "exports"
+  "revisione", "exports", "merged_csv"
 )
 
-fix_names <- function(x) {
-  x |>
-    str_replace(
-      "((.*/)*)(\\d).*[iI][eE]{3}.*$",
-      "\\2ieee-\\3\\.ris"
-    )
+set_basename <- function(x) {
+  purrr::set_names(x, basename(x))
+}
+
+remove_duplicates <- function(x, ...) {
+  dupes <- janitor::get_dupes(x, ...)
+
+  suppressMessages(
+    dplyr::anti_join(x, dupes)
+  )
 }
 
 
 # Tests -----------------------------------------------------------
 
-# with_reporter() enclosse in an interactive session all the testing
+# with_reporter() enclose in an interactive session all the testing
 # environment and machinery of {testthat}.
 # You can use default_reporter() for a general summary of your
 # tests, or you can use check_reporter() for a detailed reporter
@@ -38,53 +42,37 @@ with_reporter(default_reporter(), {
   # test_that() enclose (sets) of supposed single-purpose tests
   test_that("data_path is correct", {
     # setup
-    expected_dirs <- c("04-08-2022", "marzo_2022")
+    expected_content <- c("cinahl.marzo.csv", "cinahl.agosto.csv")
 
     # evaluation
-    obtained_dirs <- data_path |>
-      list.dirs(full.names = FALSE, recursive = FALSE)
+    obtained_content <- list.files(data_path)
 
     # tests
-    expect_subset(expected_dirs, obtained_dirs)
+    expected_content |> expect_subset(obtained_content)
   })
 
-
-  test_that("fix_names fixes the names", {
+  test_that("set_basename works", {
     # setup
-    ieee_1 <- "1-IEEE Xplore Citation Download 2022.08.04.09.23.23.ris"
-    expected_ieee_1 <- "ieee-1.ris"
-    ieee_1_path <- "path/to/1-IEEE Xplore Citation Download 2022.08.04.09.23.23.ris"
+    x <- "path/to/file"
 
-    ieee_2 <- "2 - IEEE Xplore Citation Download 2022.08.04.09.24.09.ris"
-    expected_ieee_2 <- "ieee-2.ris"
+    # evaluation
+    res <- set_basename(x)
 
-    ieee_3 <- "3- IEEE Xplore Citation Download 2022.08.04.09.24.54.ris"
-    expected_ieee_3 <- "ieee-3.ris"
+    # test
+    expect_equal(names(res), "file")
+  })
 
+  test_that("remove_duplicates works", {
+    # setup
+    db <- data.frame(a = 1:3, b = c(1, 1, 2))
 
-    acm <- "acm.ris"
-    chinhal <- "chinhal.ris"
-    cochrane <- "cochrane.ris"
-    embase <- "embase.ris"
-    pubmed <- "pubmed.txt"
-    scopus <- "scopus.ris"
-    wos <- "wos.ris"
-    
-    # evaluate
-    res_ieee_1 <- fix_names(ieee_1) |> basename()
-    res_ieee_1_path <- fix_names(ieee_1_path) |> basename()
+    # eval
+    res <- remove_duplicates(db)
+    res_a <- remove_duplicates(db, -a)
 
-    res_ieee_2 <- fix_names(ieee_2) |> basename()
-    res_ieee_3 <- fix_names(ieee_3) |> basename()
-
-    # tests
-    expect_true(str_detect(ieee_1, "(.*/)*(\\d).*[iI][eE]{3}.*$"))
-    res_ieee_1 |>  expect_equal(expected_ieee_1)
-    expect_identical(res_ieee_1, res_ieee_1_path)
-
-    res_ieee_2 |>  expect_equal(expected_ieee_2)
-    res_ieee_3 |>  expect_equal(expected_ieee_3)
-
+    # test
+    expect_equal(res, db)
+    expect_equal(res_a, data.frame(a = 3, b = 2))
   })
 
 })
@@ -94,8 +82,17 @@ with_reporter(default_reporter(), {
 
 ## For every folder get all its files
 
-ris_files <- data_path |>
-  list.dirs(recursive = FALSE) |>
-  set_names() |>
-  map(list.files, full.names = TRUE) |>
-  map(set_names, basename)
+sr_data <- list.files(data_path, full.names = TRUE) |>
+  set_basename() |>
+  map(read_csv, show_col_types = FALSE) |>
+  bind_rows(.id = "source") |>
+  separate(source, c("source", "month"), extra = "drop")
+
+new_data <- sr_data |>
+  with_groups(
+    source,
+    remove_duplicates,
+    -source, -month, -Key, -starts_with("Date")
+  )
+
+new_data
