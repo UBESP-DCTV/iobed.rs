@@ -4,6 +4,9 @@
 library(checkmate)
 library(testthat)
 library(tidyverse)
+library(janitor)
+library(here)
+
 
 # Functions -------------------------------------------------------
 
@@ -13,6 +16,9 @@ data_path <- file.path(
   "LAIMS - IOBED",
   "revisione", "exports", "merged_csv"
 )
+
+data_path <- here("data-raw/merged_csv") |>
+  path.expand()
 
 set_basename <- function(x) {
   purrr::set_names(x, basename(x))
@@ -91,7 +97,7 @@ sr_data <- list.files(data_path, full.names = TRUE) |>
       c(Issue, Date, Volume, Pages, `Num Pages`),
       as.character
     )
-  ) |> map_int(nrow)
+  ) |> # map_int(nrow)
   bind_rows(.id = "source") |>
   separate(source, c("source", "month"), extra = "drop")
 
@@ -113,7 +119,6 @@ new_data |>
   table()
 
 
-
 new_data |>
   # filter(source == "ieeex") |>
   select(
@@ -132,8 +137,8 @@ new_data |>
   glimpse()
 
 new_data |>
-  filter(source != "acm") |>
-  write_csv(
+  # filter(source != "acm") |>
+  write_excel_csv(
     paste0(
       str_remove_all(Sys.time(), "\\D"),
       "-",
