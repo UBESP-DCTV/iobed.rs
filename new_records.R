@@ -102,6 +102,10 @@ sr_data <- list.files(data_path, full.names = TRUE) |>
   separate(source, c("source", "month"), extra = "drop")
 
 new_data <- sr_data |>
+  filter(
+    !source %in% c("cochrane", "cinahl"),
+    !(source == "acm" & month == "agosto")
+  ) |>
   with_groups(
     source,
     remove_duplicates,
@@ -137,8 +141,16 @@ new_data |>
   glimpse()
 
 new_data |>
-  # filter(source != "acm") |>
-  write_excel_csv(
+  # select(source, month) |>
+  filter(
+    month != "agosto",
+    !(month == "marzo" & source == "pubmed")
+  ) |>
+  mutate(
+    month = factor(month, levels = c("marzo", "settembre"))
+  ) |>
+  # table()
+  write_csv(
     paste0(
       str_remove_all(Sys.time(), "\\D"),
       "-",
